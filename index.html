@@ -1,4 +1,4 @@
-;<!doctype html> 
+<!doctype html> 
 <html lang="en"> 
 <head> 
 	<meta charset="UTF-8" />
@@ -21,6 +21,7 @@ function preload() {
     game.load.image('enemy', 'assets/Enemy.png')
     game.load.image('player', 'assets/Player.png');
     game.load.image('level1bg', 'assets/Level1Background.png');
+    game.load.image('startbutton', 'assets/StartButton.png');
     
     //Enable FPS
     game.time.advancedTiming = true;
@@ -28,18 +29,20 @@ function preload() {
 }
 
 var player;
+var playerLives = 5;    
+
 var cursors;
 var enemy;
     
 var fpsText;
 
-var playersVelocity = 250;
+var playersVelocity = 500;
     
 var score = 0;
 var scoreText;
 
 var timerText;
-var counter = 120;
+var counter = 3;
     
 function create() {
     
@@ -66,20 +69,28 @@ function create() {
     
     timerText = game.add.text(16, 40, 'Timer: 120', { fontSize: '12px', fill: '#B5B5B5' });
     
-    fpsText = game.add.text(16, 64, 'Fps: ', { fontSize: '12px', fill: '#B5B5B5'});
+    playerLivesText = game.add.text(16, 64, 'Lives: ' + playerLives, { fontSize: '12px', fill: '#B5B5B5'});
+    
+    fpsText = game.add.text(700, 16, 'Fps: ', { fontSize: '12px', fill: '#B5B5B5'});
     
     //  Our controls.
     cursors = game.input.keyboard.createCursorKeys();
     
     //Enemies Physics
     enemies = game.add.group();
+    
+    game.add.text(325, 250, 'GAME OVER', { font: '72px', fill: '#9b0000' });
 
 }
     
 function updateTimer(){
-    counter--;
-    timerText.setText('Timer: ' + counter);
-    createEnemy();
+    if (counter > 0){ 
+        counter--;
+        timerText.setText('Timer: ' + counter);
+        createEnemy();
+    }else{
+        gameOver();
+    }
 }
     
 function update() {
@@ -120,6 +131,14 @@ function update() {
 function collideEnemy(player, enemy){
     console.log("Collision at: " + player.position.x + ", " + player.position.y);
     enemy.kill();
+    
+    if(playerLives > 0)
+        {
+            playerLives--;
+            playerLivesText.setText('Lives: ' + playerLives);
+        }else{
+            gameOver();
+        }
 }
     
 function createEnemy(){
@@ -141,7 +160,14 @@ function createEnemy(){
 }
     
 function gameOver(){
+    console.log("Game Over!");
+    game.lockRender = true;
+    game.add.button(300, 300, 'startbutton', restartGame);
     
+}
+    
+function restartGame(){
+    game.state.start("Start");
 }
     
 
