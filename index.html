@@ -1,0 +1,151 @@
+;<!doctype html> 
+<html lang="en"> 
+<head> 
+	<meta charset="UTF-8" />
+    <title>Kieran's Game</title>
+    <script src="//cdn.jsdelivr.net/phaser/2.2.2/phaser.min.js"></script>
+    <style type="text/css">
+        body {
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+
+<script type="text/javascript">
+
+var game = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, create: create, update: update});
+
+function preload() {
+
+    game.load.image('enemy', 'assets/Enemy.png')
+    game.load.image('player', 'assets/Player.png');
+    game.load.image('level1bg', 'assets/Level1Background.png');
+    
+    //Enable FPS
+    game.time.advancedTiming = true;
+
+}
+
+var player;
+var cursors;
+var enemy;
+    
+var fpsText;
+
+var playersVelocity = 250;
+    
+var score = 0;
+var scoreText;
+
+var timerText;
+var counter = 120;
+    
+function create() {
+    
+    game.time.events.loop(Phaser.Timer.SECOND, updateTimer, this);
+    
+    //  We're going to be using physics, so enable the Arcade Physics system
+    game.physics.startSystem(Phaser.Physics.ARCADE);
+
+    //  A simple background for our game
+    game.add.sprite(0, 0, 'level1bg');
+
+    // The player and its settings
+    player = game.add.sprite(500, 500,'player');
+    player.anchor.setTo(0.5, 0.5);
+
+    //  We need to enable physics on the player
+    game.physics.arcade.enable(player);
+
+    //  Player physics properties. Give the little guy a slight bounce.
+    player.body.collideWorldBounds = true;
+    
+    //  The score
+    scoreText = game.add.text(16, 16, 'Score: 0', { fontSize: '32px', fill: '#B5B5B5' });
+    
+    timerText = game.add.text(16, 40, 'Timer: 120', { fontSize: '12px', fill: '#B5B5B5' });
+    
+    fpsText = game.add.text(16, 64, 'Fps: ', { fontSize: '12px', fill: '#B5B5B5'});
+    
+    //  Our controls.
+    cursors = game.input.keyboard.createCursorKeys();
+    
+    //Enemies Physics
+    enemies = game.add.group();
+
+}
+    
+function updateTimer(){
+    counter--;
+    timerText.setText('Timer: ' + counter);
+    createEnemy();
+}
+    
+function update() {
+    
+    fpsText.setText('Fps: ' + game.time.fps);
+    
+    game.physics.arcade.collide(enemies, player, collideEnemy, null, this);
+    
+    player.rotation = game.physics.arcade.angleToPointer(player);
+
+    //  Reset the players velocity (movement)
+    player.body.velocity.x = 0;
+    player.body.velocity.y = 0;
+    
+    if (cursors.left.isDown || game.input.keyboard.addKey(Phaser.Keyboard.A).isDown)
+    {
+        //  Move to the left
+        player.body.velocity.x = -playersVelocity;
+    }
+    else if (cursors.right.isDown || game.input.keyboard.addKey(Phaser.Keyboard.D).isDown)
+    {
+        //  Move to the right
+        player.body.velocity.x = playersVelocity;
+    }
+    
+    //  Allow the player to jump if they are touching the ground.
+    if (cursors.up.isDown || game.input.keyboard.addKey(Phaser.Keyboard.W).isDown)
+    {
+        player.body.velocity.y = -playersVelocity;
+    }
+    if (cursors.down.isDown ||  game.input.keyboard.addKey(Phaser.Keyboard.S).isDown)
+    {
+        player.body.velocity.y = playersVelocity;
+    }
+
+}
+    
+function collideEnemy(player, enemy){
+    console.log("Collision at: " + player.position.x + ", " + player.position.y);
+    enemy.kill();
+}
+    
+function createEnemy(){
+    
+    if(counter >= 0 || score < 0){
+        var randomX = game.rnd.integerInRange(0, 800);
+        var randomY = game.rnd.integerInRange(72, 600);
+        //Output Spawn Coordinates
+        console.log("X: " + randomX + " Y: " + randomY);
+
+        //Create Enemy
+        enemy = enemies.create(randomX, randomY, 'enemy');
+
+        //Enable Physics
+        game.physics.enable(enemies, Phaser.Physics.ARCADE);
+    }else{
+        gameOver();
+    } 
+}
+    
+function gameOver(){
+    
+}
+    
+
+</script>
+
+</body>
+</html>
