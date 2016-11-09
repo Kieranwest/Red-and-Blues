@@ -21,13 +21,15 @@ function preload() {
     game.load.image('enemy', 'assets/Enemy.png')
     game.load.image('player', 'assets/Player.png');
     game.load.image('level1bg', 'assets/Level1Background.png');
-    game.load.image('startbutton', 'assets/StartButton.png');
+    game.load.image('pause', 'assets/Pause.png');
     
     //Enable FPS
     game.time.advancedTiming = true;
 
 }
 
+var gamePaused = false;
+    
 var player;
 var playerLives = 5;    
 
@@ -42,7 +44,10 @@ var score = 0;
 var scoreText;
 
 var timerText;
-var counter = 3;
+var counter = 120;
+    
+var button;
+var spawnChance;
     
 function create() {
     
@@ -78,9 +83,10 @@ function create() {
     
     //Enemies Physics
     enemies = game.add.group();
-    
-    game.add.text(325, 250, 'GAME OVER', { font: '72px', fill: '#9b0000' });
 
+    button = game.add.button((game.world.width /2 ), (game.world.height / 2), 'pause', buttonClick);
+    button.anchor.setTo(0.5, 0.5);
+    
 }
     
 function updateTimer(){
@@ -88,6 +94,7 @@ function updateTimer(){
         counter--;
         timerText.setText('Timer: ' + counter);
         createEnemy();
+        console.log("Spawn Chance: " + spawnChance);
     }else{
         gameOver();
     }
@@ -146,30 +153,32 @@ function createEnemy(){
     if(counter >= 0 || score < 0){
         var randomX = game.rnd.integerInRange(0, 800);
         var randomY = game.rnd.integerInRange(72, 600);
-        //Output Spawn Coordinates
-        console.log("X: " + randomX + " Y: " + randomY);
+        spawnChance = game.rnd.integerInRange(1, 3);
+        
+        //1 in 3 chance of spawning an ememy every second. 
+        if (spawnChance == 1){
+            //Output Spawn Coordinates
+            console.log("Spawn Location | " + "X: " + randomX + " Y: " + randomY);
 
-        //Create Enemy
-        enemy = enemies.create(randomX, randomY, 'enemy');
+            //Create Enemy
+            enemy = enemies.create(randomX, randomY, 'enemy');
 
-        //Enable Physics
-        game.physics.enable(enemies, Phaser.Physics.ARCADE);
+            //Enable Physics
+            game.physics.enable(enemies, Phaser.Physics.ARCADE);
+        }
+        
     }else{
         gameOver();
     } 
 }
     
 function gameOver(){
-    console.log("Game Over!");
-    game.lockRender = true;
-    game.add.button(300, 300, 'startbutton', restartGame);
-    
+    window.location.href = "./gameover.html"
 }
     
-function restartGame(){
-    game.state.start("Start");
+function buttonClick(){
+    console.log("Button Click");
 }
-    
 
 </script>
 
