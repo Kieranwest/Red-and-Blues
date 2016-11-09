@@ -49,6 +49,8 @@ var counter = 120;
 var button;
 var spawnChance;
     
+var pausedText;
+    
 function create() {
     
     game.time.events.loop(Phaser.Timer.SECOND, updateTimer, this);
@@ -87,7 +89,19 @@ function create() {
     button = game.add.button((game.world.width /2 ), (game.world.height / 2), 'pause', buttonClick);
     button.anchor.setTo(0.5, 0.5);
     
+    game.input.onDown.add(unpause, self);
+    
 }
+    
+    function unpause(event){
+        if(game.paused){
+            game.paused = false;
+            pausedText.destroy();
+        }else{
+            pausedText = game.add.text(380, 380, 'Paused', { fontSize: '12px', fill: '#B5B5B5'});
+            console.log("Paused");
+        }
+    }
     
 function updateTimer(){
     if (counter > 0){ 
@@ -178,6 +192,7 @@ function gameOver(){
     
 function buttonClick(){
     console.log("Button Click");
+    game.paused = true;
 }
 
 </script>
