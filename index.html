@@ -6,7 +6,10 @@
     <script src="//cdn.jsdelivr.net/phaser/2.2.2/phaser.min.js"></script>
     <style type="text/css">
         body {
-            margin: 0;
+            margin-left: auto;
+            margin-right: auto;
+            width: 900px;
+            
         }
     </style>
 </head>
@@ -22,6 +25,7 @@ function preload() {
     game.load.image('player', 'assets/Player.png');
     game.load.image('level1bg', 'assets/Level1Background.png');
     game.load.image('pause', 'assets/Pause.png');
+    game.load.image('bullet', 'assets/Bullet.png');
     
     //Enable FPS
     game.time.advancedTiming = true;
@@ -34,10 +38,15 @@ var gameStarted = false;
     
 var player;
 var playerLives = 5;  
-var playersVelocity = 500;
+var playersVelocity = 250;
+var enemyVelocity = 100;
 var score = 0;
 var counter = 120;
+var nextFire = 0;
+var fireRate = 150;
     
+var bullets;
+var bullet;
 var cursors;
 var enemy;
 var button;
@@ -50,6 +59,9 @@ var pausedText;
     
 function create() {
     
+    //Bullets
+    
+    //1 Second Timer
     game.time.events.loop(Phaser.Timer.SECOND, updateTimer, this);
     
     //  We're going to be using physics, so enable the Arcade Physics system
@@ -75,13 +87,15 @@ function create() {
     
     playerLivesText = game.add.text(16, 64, 'Lives: ' + playerLives, { fontSize: '12px', fill: '#B5B5B5'});
     
-    //fpsText = game.add.text(700, 16, 'Fps: ', { fontSize: '12px', fill: '#B5B5B5'});
+    fpsText = game.add.text(700, 64, 'Fps: ', { fontSize: '12px', fill: '#B5B5B5'});
     
     //  Our controls.
     cursors = game.input.keyboard.createCursorKeys();
     
     //Enemies Physics
     enemies = game.add.group();
+    
+    bullets = game.add.group();
 
     button = game.add.button(752, 24, 'pause', buttonClick);
 }
@@ -110,11 +124,16 @@ function updateTimer(){
     
 function update() {
     
+    //Detect Click
     game.input.onDown.add(unpause, self);
     
-    //fpsText.setText('Fps: ' + game.time.fps);
+    fpsText.setText('Fps: ' + game.time.fps);
+    
+    scoreText.setText('Score: ' + score);
     
     game.physics.arcade.collide(enemies, player, collideEnemy, null, this);
+    
+    game.physics.arcade.collide(bullets, enemies, collideEnemyWithBullet, null, this);
     
     player.rotation = game.physics.arcade.angleToPointer(player);
 
@@ -133,7 +152,6 @@ function update() {
         player.body.velocity.x = playersVelocity;
     }
     
-    //  Allow the player to jump if they are touching the ground.
     if (cursors.up.isDown || game.input.keyboard.addKey(Phaser.Keyboard.W).isDown)
     {
         player.body.velocity.y = -playersVelocity;
@@ -142,22 +160,46 @@ function update() {
     {
         player.body.velocity.y = playersVelocity;
     }
+    
+    //Spacebar Fires
+    if (game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR).isDown)
+    {
+            fire();
+    }
 
+    //Move Enemy Towards Player 
     if(gameStarted)
     {
-        //If Enemy is less than 250px away. Go to player
-        //if (game.physics.arcade.distanceBetween(enemy, player) < 250)
-        //{
-           // game.physics.arcade.moveToPointer(enemies, 20);
-       // }
-        
         enemies.forEach(function(enemy){
-            game.physics.arcade.moveToObject(enemy, player, 100);
-            enemy.rotation = game.physics.arcade.angleBetween(enemy, player);
-        });
+        game.physics.arcade.moveToObject(enemy, player, enemyVelocity);
+        enemy.rotation = game.physics.arcade.angleBetween(enemy, player);
+    });
         
     }
+}
+//Fire Bullets Class
+function fire(){
     
+    bullets.enableBody = true;
+    bullets.physicsBodyType = Phaser.Physics.ARCADE;
+    bullets.createMultiple(30, 'bullet');
+    bullets.setAll('checkWorldBounds', true);
+    bullets.setAll('outOfBoundsKill', true);
+    
+    if (game.time.now > nextFire && bullets.countDead() > 0)
+    {
+        nextFire = game.time.now + fireRate;
+
+        var bullet = bullets.getFirstDead();
+
+        bullet.reset(player.x - 8, player.y - 16);
+
+        game.physics.arcade.enable(bullet);
+        
+        game.physics.arcade.moveToPointer(bullet, 500);
+        
+        bullet.rotation = game.physics.arcade.angleToPointer(bullet);
+    }
     
 }
     
@@ -172,6 +214,12 @@ function collideEnemy(player, enemy){
         }else{
             gameOver();
         }
+}
+    
+function collideEnemyWithBullet(bullets, enemies){
+    enemies.kill();
+    bullets.kill();
+    score += 10;
 }
     
 function createEnemy(){
@@ -214,7 +262,7 @@ function gameOver(){
 function buttonClick(){
     console.log("Paused");
     game.paused = true;
-    pausedText = game.add.text((game.world.width / 2), (game.world.height / 2), 'PAUSED', { font: '72px Segoe UI', fill: '#ff2600'});
+    pausedText = game.add.text((game.world.width / 2), (game.world.height / 2), 'PAUSED', { font: '72px Segoe UI', fill: '#ff0000'});
     pausedText.anchor.set(0.5);
 }
 
