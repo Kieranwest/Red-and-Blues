@@ -29,25 +29,22 @@ function preload() {
 }
 
 var gamePaused = false;
+var isGameOver = false;
+var gameStarted = false;
     
 var player;
-var playerLives = 5;    
-
-var cursors;
-var enemy;
-    
-var fpsText;
-
+var playerLives = 5;  
 var playersVelocity = 500;
-    
 var score = 0;
-var scoreText;
-
-var timerText;
 var counter = 120;
     
+var cursors;
+var enemy;
 var button;
 var spawnChance;
+var fpsText;
+var timerText;
+var scoreText;
     
 var pausedText;
     
@@ -78,7 +75,7 @@ function create() {
     
     playerLivesText = game.add.text(16, 64, 'Lives: ' + playerLives, { fontSize: '12px', fill: '#B5B5B5'});
     
-    fpsText = game.add.text(700, 16, 'Fps: ', { fontSize: '12px', fill: '#B5B5B5'});
+    //fpsText = game.add.text(700, 16, 'Fps: ', { fontSize: '12px', fill: '#B5B5B5'});
     
     //  Our controls.
     cursors = game.input.keyboard.createCursorKeys();
@@ -86,37 +83,36 @@ function create() {
     //Enemies Physics
     enemies = game.add.group();
 
-    button = game.add.button((game.world.width /2 ), (game.world.height / 2), 'pause', buttonClick);
-    button.anchor.setTo(0.5, 0.5);
-    
-    game.input.onDown.add(unpause, self);
-    
+    button = game.add.button(752, 24, 'pause', buttonClick);
 }
     
     function unpause(event){
-        if(game.paused){
+        if(game.paused == true){
             game.paused = false;
             pausedText.destroy();
         }else{
-            pausedText = game.add.text(380, 380, 'Paused', { fontSize: '12px', fill: '#B5B5B5'});
-            console.log("Paused");
+            
         }
     }
     
 function updateTimer(){
-    if (counter > 0){ 
-        counter--;
-        timerText.setText('Timer: ' + counter);
-        createEnemy();
-        console.log("Spawn Chance: " + spawnChance);
-    }else{
-        gameOver();
+    if(isGameOver == false){
+        if (counter > 0){ 
+            counter--;
+            timerText.setText('Timer: ' + counter);
+            createEnemy();
+            console.log("Spawn Chance: " + spawnChance);
+        }else{
+            gameOver();
+        }
     }
 }
     
 function update() {
     
-    fpsText.setText('Fps: ' + game.time.fps);
+    game.input.onDown.add(unpause, self);
+    
+    //fpsText.setText('Fps: ' + game.time.fps);
     
     game.physics.arcade.collide(enemies, player, collideEnemy, null, this);
     
@@ -147,6 +143,22 @@ function update() {
         player.body.velocity.y = playersVelocity;
     }
 
+    if(gameStarted)
+    {
+        //If Enemy is less than 250px away. Go to player
+        //if (game.physics.arcade.distanceBetween(enemy, player) < 250)
+        //{
+           // game.physics.arcade.moveToPointer(enemies, 20);
+       // }
+        
+        enemies.forEach(function(enemy){
+            game.physics.arcade.moveToObject(enemy, player, 100);
+            enemy.rotation = game.physics.arcade.angleBetween(enemy, player);
+        });
+        
+    }
+    
+    
 }
     
 function collideEnemy(player, enemy){
@@ -163,36 +175,47 @@ function collideEnemy(player, enemy){
 }
     
 function createEnemy(){
-    
-    if(counter >= 0 || score < 0){
-        var randomX = game.rnd.integerInRange(0, 800);
-        var randomY = game.rnd.integerInRange(72, 600);
-        spawnChance = game.rnd.integerInRange(1, 3);
-        
-        //1 in 3 chance of spawning an ememy every second. 
-        if (spawnChance == 1){
-            //Output Spawn Coordinates
-            console.log("Spawn Location | " + "X: " + randomX + " Y: " + randomY);
+    if(isGameOver == false){
+        if(counter >= 0 || score < 0){
+            var randomX = game.rnd.integerInRange(0, 800);
+            var randomY = game.rnd.integerInRange(72, 600);
+            spawnChance = game.rnd.integerInRange(1, 3);
 
-            //Create Enemy
-            enemy = enemies.create(randomX, randomY, 'enemy');
+            //1 in 3 chance of spawning an ememy every second. 
+            if (spawnChance == 1){
+                //Output Spawn Coordinates
+                console.log("Spawn Location | " + "X: " + randomX + " Y: " + randomY);
 
-            //Enable Physics
-            game.physics.enable(enemies, Phaser.Physics.ARCADE);
+                //Create Enemy
+                enemy = enemies.create(randomX, randomY, 'enemy');
+                enemy.anchor.set(0.5);
+
+                //Enable Physics
+                game.physics.enable(enemies, Phaser.Physics.ARCADE);
+                gameStarted = true;
+            }
         }
-        
-    }else{
-        gameOver();
-    } 
+    }  
 }
     
+function suicide()
+    {
+        player.kill();
+        enemies.destroy();
+    }
+    
 function gameOver(){
-    window.location.href = "./gameover.html"
+    //window.location.href = "./gameover.html"
+    isGameOver = true;
+    player.kill();
+    enemies.destroy();
 }
     
 function buttonClick(){
-    console.log("Button Click");
+    console.log("Paused");
     game.paused = true;
+    pausedText = game.add.text((game.world.width / 2), (game.world.height / 2), 'PAUSED', { font: '72px Segoe UI', fill: '#ff2600'});
+    pausedText.anchor.set(0.5);
 }
 
 </script>
