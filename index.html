@@ -26,6 +26,9 @@ function preload() {
     game.load.image('level1bg', 'assets/Level1Background.png');
     game.load.image('pause', 'assets/Pause.png');
     game.load.image('bullet', 'assets/Bullet.png');
+    game.load.image('health', 'assets/Health.png');
+    game.load.image('speed', 'assets/Speed.png');
+    game.load.image('rapidFire', 'assets/RapidFire.png');
     
     //Enable FPS
     game.time.advancedTiming = true;
@@ -37,13 +40,15 @@ var isGameOver = false;
 var gameStarted = false;
     
 var player;
-var playerLives = 5;  
+var playerLives = 10;  
 var playersVelocity = 250;
 var enemyVelocity = 100;
 var score = 0;
 var counter = 120;
 var nextFire = 0;
 var fireRate = 150;
+var speedBoostTimer = 0;
+var rapidFireTimer = 0;
     
 var bullets;
 var bullet;
@@ -54,6 +59,12 @@ var spawnChance;
 var fpsText;
 var timerText;
 var scoreText;
+var health;
+var healthPacks;
+var speed;
+var speedPacks;
+var rapidFire;
+var rapidPacks;
     
 var pausedText;
     
@@ -96,6 +107,12 @@ function create() {
     enemies = game.add.group();
     
     bullets = game.add.group();
+    
+    healthPacks = game.add.group();
+    
+    speedPacks = game.add.group();
+    
+    rapidPacks = game.add.group();
 
     button = game.add.button(752, 24, 'pause', buttonClick);
 }
@@ -113,9 +130,10 @@ function updateTimer(){
     if(isGameOver == false){
         if (counter > 0){ 
             counter--;
+            speedBoostTimer--;
+            rapidFireTimer--;
             timerText.setText('Timer: ' + counter);
             createEnemy();
-            console.log("Spawn Chance: " + spawnChance);
         }else{
             gameOver();
         }
@@ -123,6 +141,27 @@ function updateTimer(){
 }
     
 function update() {
+    
+    //Speed Boost
+    if(speedBoostTimer > 0)
+    {
+        playersVelocity = 500;
+    }else{
+        playersVelocity = 250;
+    }
+    
+    if(rapidFireTimer > 0)
+    {
+         fireRate = 50;   
+    }else{
+        fireRate = 100;
+    }
+    
+    game.debug.text('Active Bullets: ' + bullets.countLiving() + ' / ' + bullets.total, 575 ,120);
+    
+    game.debug.text('Active Enemies: ' + enemies.countLiving() + ' / ' + enemies.total, 575 ,140);
+    
+    game.debug.text('Fire Rate: ' + fireRate, 575 ,160);
     
     //Detect Click
     game.input.onDown.add(unpause, self);
@@ -134,6 +173,12 @@ function update() {
     game.physics.arcade.collide(enemies, player, collideEnemy, null, this);
     
     game.physics.arcade.collide(bullets, enemies, collideEnemyWithBullet, null, this);
+    
+    game.physics.arcade.collide(player, healthPacks, collideHealth, null, this);
+    
+    game.physics.arcade.collide(player, speedPacks, collideSpeed, null, this);
+    
+    game.physics.arcade.collide(player, rapidPacks, collideRapidFire, null, this);
     
     player.rotation = game.physics.arcade.angleToPointer(player);
 
@@ -162,9 +207,12 @@ function update() {
     }
     
     //Spacebar Fires
-    if (game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR).isDown)
+    if (game.input.activePointer.isDown)
     {
+        if(isGameOver == false)
+        {
             fire();
+        }
     }
 
     //Move Enemy Towards Player 
@@ -182,7 +230,7 @@ function fire(){
     
     bullets.enableBody = true;
     bullets.physicsBodyType = Phaser.Physics.ARCADE;
-    bullets.createMultiple(30, 'bullet');
+    bullets.createMultiple(1, 'bullet');
     bullets.setAll('checkWorldBounds', true);
     bullets.setAll('outOfBoundsKill', true);
     
@@ -220,27 +268,125 @@ function collideEnemyWithBullet(bullets, enemies){
     enemies.kill();
     bullets.kill();
     score += 10;
+    
+    var dropChance = game.rnd.integerInRange(1, 20);
+    
+    if(dropChance == 1)
+    {
+            
+        healthPacks.enableBody = true;
+        healthPacks.physicsBodyType = Phaser.Physics.ARCADE;
+        health = healthPacks.create(enemies.x, enemies.y, 'health');
+        
+    }else if(dropChance == 2)
+    {
+        speedPacks.enableBody = true;
+        speedPacks.physicsBodyType = Phaser.Physics.ARCADE;
+        speed = speedPacks.create(enemies.x, enemies.y, 'speed');
+        
+    }else if(dropChance == 3)
+    {
+        rapidPacks.enableBody = true;
+        rapidPacks.physicsBodyType = Phaser.Physics.ARCADE;
+        rapidFire = rapidPacks.create(enemies.x, enemies.y, 'rapidFire');
+    }
+}
+    
+function collideHealth(player, health){
+    health.destroy();
+    playerLives += 1;
+    playerLivesText.setText('Lives: ' + playerLives);
+}
+    
+function collideSpeed(player, speed){
+    speed.destroy();
+    speedBoostTimer = 5;
+}
+    
+function collideRapidFire(player, rapidFire){
+    rapidFire.destroy();
+    rapidFireTimer = 10;
 }
     
 function createEnemy(){
     if(isGameOver == false){
-        if(counter >= 0 || score < 0){
-            var randomX = game.rnd.integerInRange(0, 800);
-            var randomY = game.rnd.integerInRange(72, 600);
-            spawnChance = game.rnd.integerInRange(1, 3);
-
-            //1 in 3 chance of spawning an ememy every second. 
-            if (spawnChance == 1){
-                //Output Spawn Coordinates
-                console.log("Spawn Location | " + "X: " + randomX + " Y: " + randomY);
-
-                //Create Enemy
-                enemy = enemies.create(randomX, randomY, 'enemy');
-                enemy.anchor.set(0.5);
-
-                //Enable Physics
-                game.physics.enable(enemies, Phaser.Physics.ARCADE);
-                gameStarted = true;
+        if (counter >= 0)
+        {
+            if(score < 800)
+            {
+                
+                if(counter > 100 && counter < 120)
+                {
+                    //Create Enemy
+                    enemy = enemies.create(game.rnd.integerInRange(0, 800), game.rnd.integerInRange(72, 600), 'enemy');
+                    enemy.anchor.set(0.5);
+                    game.physics.enable(enemies, Phaser.Physics.ARCADE);
+                    gameStarted = true;
+                    
+                }else if(counter > 80 && counter < 100)
+                {
+                    enemyVelocity = 125;
+                    //Create Enemy
+                    enemy = enemies.create(game.rnd.integerInRange(0, 800), game.rnd.integerInRange(72, 600), 'enemy');
+                    enemy.anchor.set(0.5);
+                    game.physics.enable(enemies, Phaser.Physics.ARCADE);
+                    gameStarted = true;
+                    
+                    //Create Enemy
+                    enemy = enemies.create(game.rnd.integerInRange(0, 800), game.rnd.integerInRange(72, 600), 'enemy');
+                    enemy.anchor.set(0.5);
+                    game.physics.enable(enemies, Phaser.Physics.ARCADE);
+                    gameStarted = true;
+                    
+                }else if(counter > 60 && counter < 80)
+                {
+                    enemyVelocity = 150;
+                    //Create Enemy
+                    enemy = enemies.create(game.rnd.integerInRange(0, 800), game.rnd.integerInRange(72, 600), 'enemy');
+                    enemy.anchor.set(0.5);
+                    game.physics.enable(enemies, Phaser.Physics.ARCADE);
+                    gameStarted = true;
+                    
+                    //Create Enemy
+                    enemy = enemies.create(game.rnd.integerInRange(0, 800), game.rnd.integerInRange(72, 600), 'enemy');
+                    enemy.anchor.set(0.5);
+                    game.physics.enable(enemies, Phaser.Physics.ARCADE);
+                    gameStarted = true;
+                    
+                    //Create Enemy
+                    enemy = enemies.create(game.rnd.integerInRange(0, 800), game.rnd.integerInRange(72, 600), 'enemy');
+                    enemy.anchor.set(0.5);
+                    game.physics.enable(enemies, Phaser.Physics.ARCADE);
+                    gameStarted = true;
+                    
+                }else if(counter > 0 && counter < 60)
+                {
+                    enemyVelocity = 175;
+                    //Create Enemy
+                    enemy = enemies.create(game.rnd.integerInRange(0, 800), game.rnd.integerInRange(72, 600), 'enemy');
+                    enemy.anchor.set(0.5);
+                    game.physics.enable(enemies, Phaser.Physics.ARCADE);
+                    gameStarted = true;
+                    
+                    //Create Enemy
+                    enemy = enemies.create(game.rnd.integerInRange(0, 800), game.rnd.integerInRange(72, 600), 'enemy');
+                    enemy.anchor.set(0.5);
+                    game.physics.enable(enemies, Phaser.Physics.ARCADE);
+                    gameStarted = true;
+                    
+                    //Create Enemy
+                    enemy = enemies.create(game.rnd.integerInRange(0, 800), game.rnd.integerInRange(72, 600), 'enemy');
+                    enemy.anchor.set(0.5);
+                    game.physics.enable(enemies, Phaser.Physics.ARCADE);
+                    gameStarted = true;
+                    
+                    //Create Enemy
+                    enemy = enemies.create(game.rnd.integerInRange(0, 800), game.rnd.integerInRange(72, 600), 'enemy');
+                    enemy.anchor.set(0.5);
+                    game.physics.enable(enemies, Phaser.Physics.ARCADE);
+                    gameStarted = true;
+                    
+                }
             }
         }
     }  
